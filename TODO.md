@@ -25,7 +25,7 @@
     - If insufficient funds
         - Return ?? status code with data object noting insufficient funds error
     - If timeout/503
-        - Retry
+        - Retry a maximum of three times. If timeouts continue, send a 503 response indicating the server could not be reached.
 
 - (Optional) Provide endpoint for listing all valid subscriptions and their next billing date
 
