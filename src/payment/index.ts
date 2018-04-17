@@ -1,10 +1,11 @@
 import * as constants from '../constants';
 import * as express from 'express';
+import * as util from '../util';
 
 export interface PaymentGatewayResponse {
-    id: number;
+    id: string;
     paid: boolean;
-    error: null | constants.INSUFFICIENT_FUNDS;
+    error: null | constants.INSUFFICIENT_FUNDS | constants.SERVICE_UNAVAILABLE;
 };
 
 const paymentHandler = async (request: express.Request, response: express.Response): Promise<void> => {
@@ -37,7 +38,31 @@ const paymentHandler = async (request: express.Request, response: express.Respon
                 message: 'Valid authorization is required'
             }
         })
+    } else {
+        const randomIntegerZeroToTwo = util.getRandomInt(3);
+
+        if (randomIntegerZeroToTwo === 0) {
+            response.status(200);
+
+            response.json(PaymentGatewayResponse(true));
+        } else if (randomIntegerZeroToTwo === 1) {
+            response.status(200);
+
+            response.json(PaymentGatewayResponse(false, constants.INSUFFICIENT_FUNDS));
+        } else {
+            response.status(503);
+
+            response.json(PaymentGatewayResponse(false, constants.SERVICE_UNAVAILABLE));
+        }
     }
 };
+
+function PaymentGatewayResponse(paid: boolean, error?: constants.INSUFFICIENT_FUNDS | constants.SERVICE_UNAVAILABLE): PaymentGatewayResponse {
+    return {
+        id: util.getRandomHexString(),
+        paid,
+        error: error ? error : null
+    }
+}
 
 export default paymentHandler;

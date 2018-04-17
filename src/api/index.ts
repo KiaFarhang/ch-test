@@ -2,7 +2,7 @@ export interface CustomerData {
     firstName: string;
     lastName: string;
     creditCardNumber: string;
-    expirationMonth: number;
+    expirationMonth: string;
     expirationYear: number;
 };
 
