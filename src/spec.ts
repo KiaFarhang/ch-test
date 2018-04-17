@@ -2,10 +2,11 @@ import 'mocha';
 import app from './index';
 import * as chai from 'chai';
 import * as constants from './constants';
+import * as nock from 'nock';
 import * as sinon from 'sinon';
 import * as util from './util';
 
-import { CustomerData } from './api';
+import { APIResponse, CustomerData } from './api';
 import { PaymentGatewayResponse } from './payment';
 
 
@@ -15,10 +16,20 @@ const { assert } = chai;
 
 const rootEndpoint = '/api/v1';
 
-describe('Server', () => {
-    describe("Payment Gateway - /payment", () => {
+const paymentEndpoint = rootEndpoint + '/payment';
 
-        const paymentEndpoint = rootEndpoint + '/payment';
+describe('Server', () => {
+
+    // 'Valid' customer data used across both test suites
+
+    const customerData: CustomerData = {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        creditCardNumber: '1111222233334444',
+        expirationMonth: '05',
+        expirationYear: 2019
+    };
+    describe("Payment Gateway - /payment", () => {
 
         describe("POST", () => {
             describe("No Authorization header", () => {
@@ -52,14 +63,6 @@ describe('Server', () => {
                 randomNumberStub.onCall(0).returns(0);
                 randomNumberStub.onCall(1).returns(1);
                 randomNumberStub.onCall(2).returns(2);
-
-                const customerData: CustomerData = {
-                    firstName: 'Jane',
-                    lastName: 'Smith',
-                    creditCardNumber: '1111222233334444',
-                    expirationMonth: '05',
-                    expirationYear: 2019
-                };
 
                 after(() => {
                     randomNumberStub.restore();
@@ -178,4 +181,114 @@ describe('Server', () => {
             });
         });
     });
+
+    describe('Subscription endpoint - /subscribe', () => {
+        const subscriptionEndpoint = rootEndpoint + '/subscribe';
+
+        after(() => {
+            nock.cleanAll();
+        });
+
+        describe('POST', () => {
+            describe('Invalid customer data', () => {
+
+                const invalidData = {
+                    foo: 'Bar'
+                };
+
+                const mockPaymentResponse = {
+                    data: null,
+                    error: {
+                        message: 'Valid authorization is required'
+                    }
+                };
+
+                const mockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                    .post('/api/v1/payment', invalidData)
+                    .reply(401, mockPaymentResponse);
+
+                let response: ChaiHttp.Response;
+                let body: APIResponse;
+
+                before(async () => {
+                    response = await chai.request(app)
+                        .post(subscriptionEndpoint)
+                        .send(invalidData);
+
+                    body = response.body;
+                });
+
+                it('Returns a 400 Bad Request', () => {
+                    assert.strictEqual(response.status, 400);
+                });
+                it('Returns an object body', () => {
+                    assert.isObject(body);
+                });
+
+                describe('Response body', () => {
+                    it('Has a null "data" property', () => {
+                        assert.isNull(body.data);
+                    });
+                    it('Has an object "error" property, which has a "message" property set to "Invalid customer data"', () => {
+                        assert.isObject(body.error);
+                        assert.property(body.error, 'message');
+                        if (body.error) {
+                            assert.strictEqual(body.error.message, constants.INVALID_CUSTOMER_DATA);
+                        }
+                    });
+                });
+            });
+
+            describe('Valid customer data', () => {
+                describe('Sufficient funds', () => {
+
+                    const mockPaymentResponse: PaymentGatewayResponse = {
+                        id: util.getRandomHexString(),
+                        paid: true,
+                        error: null
+                    };
+
+                    const mockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                        .post('/api/v1/payment', customerData)
+                        .basicAuth({ user: process.env.PAYMENT_USER as string, pass: process.env.PAYMENT_PASS as string })
+                        .reply(201, mockPaymentResponse);
+
+                    describe('Successfully adds customer to database', () => {
+                        let response: ChaiHttp.Response;
+                        let body: APIResponse;
+
+                        before(async () => {
+                            response = await chai.request(app)
+                                .post(subscriptionEndpoint)
+                                .send(customerData);
+
+                            body = response.body;
+                        });
+                        it('Adds the customer to the database', () => {
+
+                        });
+                        it('Returns a 201 Created status code', () => {
+                            assert.strictEqual(response.status, 201);
+                        });
+                        it('Returns an object body', () => {
+                            assert.isObject(body);
+                        });
+                        describe('Response body', () => {
+                            it('Has an object "data" property, which has a string "message" property set to the success constant', () => {
+                                assert.isObject(body.data);
+                                assert.property(body.data, 'message');
+                                if (body.data) {
+                                    assert.strictEqual(body.data.message, constants.SUBSCRIPTION_SUCCESSFUL);
+                                }
+                            })
+                        })
+                    });
+                    describe('Fails to add customer to database', () => {
+
+                    });
+                });
+            });
+        });
+
+    })
 });
