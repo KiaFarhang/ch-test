@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "pretest": "tsc",
-    "test": "NODE_ENV=test mocha --exit ./dist/**/spec.js",
+    "test": "mocha dist/ --recursive",
     "prestart": "tsc",
     "start": "node dist/index.js"
   },

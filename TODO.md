@@ -1,8 +1,8 @@
 ### Fake payment gateway ###
 
-- Check auth headers
-    - If basic auth headers don't match `billing`, `gateway`
-        - Return a 401 unauthorized
+- ~~Check auth headers~~
+    - ~~If basic auth headers don't match `billing`, `gateway`~~
+        - ~~Return a 401 unauthorized~~
 - Generate a random number between 0 and 2
     - If 0
         - return a Response object noting the payment processed
