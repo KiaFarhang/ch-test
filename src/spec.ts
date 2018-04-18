@@ -203,10 +203,6 @@ describe('Server', () => {
                     }
                 };
 
-                const mockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
-                    .post('/api/v1/payment', invalidData)
-                    .reply(401, mockPaymentResponse);
-
                 let response: ChaiHttp.Response;
                 let body: APIResponse;
 
@@ -229,7 +225,7 @@ describe('Server', () => {
                     it('Has a null "data" property', () => {
                         assert.isNull(body.data);
                     });
-                    it('Has an object "error" property, which has a "message" property set to "Invalid customer data"', () => {
+                    it('Has an object "error" property, which has a "message" property set to the invalid customer data constant', () => {
                         assert.isObject(body.error);
                         assert.property(body.error, 'message');
                         if (body.error) {
@@ -264,7 +260,7 @@ describe('Server', () => {
 
                             body = response.body;
                         });
-                        it('Adds the customer to the database', () => {
+                        it('TODO - Adds the customer to the database', () => {
 
                         });
                         it('Returns a 201 Created status code', () => {
@@ -280,15 +276,216 @@ describe('Server', () => {
                                 if (body.data) {
                                     assert.strictEqual(body.data.message, constants.SUBSCRIPTION_SUCCESSFUL);
                                 }
-                            })
-                        })
+                            });
+                            it('has a null "error" property', () => {
+                                assert.isNull(body.error);
+                            });
+                        });
                     });
                     describe('Fails to add customer to database', () => {
 
                     });
                 });
+                describe('Insufficient funds', () => {
+                    const mockPaymentResponse: PaymentGatewayResponse = {
+                        id: util.getRandomHexString(),
+                        paid: false,
+                        error: constants.INSUFFICIENT_FUNDS
+                    };
+
+                    const mockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                        .post('/api/v1/payment', customerData)
+                        .basicAuth({ user: process.env.PAYMENT_USER as string, pass: process.env.PAYMENT_PASS as string })
+                        .reply(200, mockPaymentResponse);
+
+                    let response: ChaiHttp.Response;
+                    let body: APIResponse;
+
+                    before(async () => {
+                        response = await chai.request(app)
+                            .post(subscriptionEndpoint)
+                            .send(customerData);
+
+                        body = response.body;
+                    });
+
+                    it('Returns a 400 Bad Request status code', () => {
+                        assert.strictEqual(response.status, 400);
+                    });
+                    it('Returns an object body', () => {
+                        assert.isObject(body);
+                    });
+                    describe('Response body', () => {
+                        it('has a null "data" property', () => {
+                            assert.isNull(body.data);
+                        });
+                        it('has an object "error" property, which has a string "message" set to the insufficient funds constant', () => {
+                            assert.isObject(body.error);
+                            assert.property(body.error, 'message');
+                            if (body.error) {
+                                assert.strictEqual(body.error.message, constants.INSUFFICIENT_FUNDS);
+                            }
+                        });
+                    });
+                });
+                describe('Payment gateway error', () => {
+                    describe('Successful retry (within two additional attempts)', () => {
+                        describe('Sufficient funds', () => {
+                            const firstMockPaymentResponse: PaymentGatewayResponse = {
+                                id: util.getRandomHexString(),
+                                paid: false,
+                                error: constants.SERVICE_UNAVAILABLE
+                            };
+
+                            const secondMockPaymentResponse: PaymentGatewayResponse = {
+                                id: util.getRandomHexString(),
+                                paid: true,
+                                error: null
+                            };
+
+                            const firstMockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                                .post('/api/v1/payment', customerData)
+                                .basicAuth({ user: process.env.PAYMENT_USER as string, pass: process.env.PAYMENT_PASS as string })
+                                .reply(503, firstMockPaymentResponse);
+
+
+                            const secondMockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                                .post('/api/v1/payment', customerData)
+                                .basicAuth({ user: process.env.PAYMENT_USER as string, pass: process.env.PAYMENT_PASS as string })
+                                .reply(200, secondMockPaymentResponse);
+
+                            let response: ChaiHttp.Response;
+                            let body: APIResponse;
+
+                            before(async () => {
+                                response = await chai.request(app)
+                                    .post(subscriptionEndpoint)
+                                    .send(customerData);
+
+                                body = response.body;
+                            });
+
+                            it('Returns a 201 Created status code', () => {
+                                assert.strictEqual(response.status, 201);
+                            });
+                            it('Returns an object body', () => {
+                                assert.isObject(body);
+                            });
+                            describe('Response body', () => {
+                                it('Has an object "data" property, which has a string "message" property set to the success constant', () => {
+                                    assert.isObject(body.data);
+                                    assert.property(body.data, 'message');
+                                    if (body.data) {
+                                        assert.strictEqual(body.data.message, constants.SUBSCRIPTION_SUCCESSFUL);
+                                    }
+                                });
+                                it('has a null "error" property', () => {
+                                    assert.isNull(body.error);
+                                });
+                            });
+                        });
+                        describe('Insufficient funds', () => {
+                            const firstAndSecondMockPaymentResponse: PaymentGatewayResponse = {
+                                id: util.getRandomHexString(),
+                                paid: false,
+                                error: constants.SERVICE_UNAVAILABLE
+                            };
+
+                            const thirdMockPaymentResponse: PaymentGatewayResponse = {
+                                id: util.getRandomHexString(),
+                                paid: false,
+                                error: constants.INSUFFICIENT_FUNDS
+                            };
+
+                            const firstMockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                                .post('/api/v1/payment', customerData)
+                                .times(2)
+                                .basicAuth({ user: process.env.PAYMENT_USER as string, pass: process.env.PAYMENT_PASS as string })
+                                .reply(200, firstAndSecondMockPaymentResponse);
+
+                            const secondMockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                                .post('/api/v1/payment', customerData)
+                                .basicAuth({ user: process.env.PAYMENT_USER as string, pass: process.env.PAYMENT_PASS as string })
+                                .reply(200, thirdMockPaymentResponse);
+
+                            let response: ChaiHttp.Response;
+                            let body: APIResponse;
+
+                            before(async () => {
+                                response = await chai.request(app)
+                                    .post(subscriptionEndpoint)
+                                    .send(customerData);
+
+                                body = response.body;
+                            });
+
+                            it('Returns a 400 Bad Request status code', () => {
+                                assert.strictEqual(response.status, 400);
+                            });
+                            it('Returns an object body', () => {
+                                assert.isObject(body);
+                            });
+                            describe('Response body', () => {
+                                it('has a null "data" property', () => {
+                                    assert.isNull(body.data);
+                                });
+                                it('has an object "error" property, which has a string "message" set to the insufficient funds constant', () => {
+                                    assert.isObject(body.error);
+                                    assert.property(body.error, 'message');
+                                    if (body.error) {
+                                        assert.strictEqual(body.error.message, constants.INSUFFICIENT_FUNDS);
+                                    }
+                                });
+                            });
+                        });
+                    });
+                    describe('Unsuccessful retry (three failed attempts)', () => {
+                        const mockPaymentResponse: PaymentGatewayResponse = {
+                            id: util.getRandomHexString(),
+                            paid: false,
+                            error: constants.SERVICE_UNAVAILABLE
+                        };
+
+                        const mockPaymentGateway = nock(`http://localhost:${process.env.APP_PORT}`)
+                            .post('/api/v1/payment', customerData)
+                            .times(4)
+                            .basicAuth({ user: process.env.PAYMENT_USER as string, pass: process.env.PAYMENT_PASS as string })
+                            .reply(503, mockPaymentResponse);
+
+                        let response: ChaiHttp.Response;
+                        let body: APIResponse;
+
+                        before(async () => {
+                            response = await chai.request(app)
+                                .post(subscriptionEndpoint)
+                                .send(customerData);
+
+                            body = response.body;
+                        });
+
+                        it("Returns a 503 Service Unavailable status code", () => {
+                            assert.strictEqual(response.status, 503);
+                        });
+
+                        it("Returns an object body", () => {
+                            assert.isObject(body);
+                        });
+
+                        describe("Response body", () => {
+                            it('has a null "data" property', () => {
+                                assert.isNull(body.data);
+                            });
+                            it('has an object "error" property, which has a string "message" set to the service unavailable constant', () => {
+                                assert.isObject(body.error);
+                                assert.property(body.error, 'message');
+                                if (body.error) {
+                                    assert.strictEqual(body.error.message, constants.SERVICE_UNAVAILABLE);
+                                }
+                            });
+                        });
+                    });
+                });
             });
         });
-
-    })
+    });
 });

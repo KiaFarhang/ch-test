@@ -5,7 +5,7 @@ import * as util from '../util';
 export interface PaymentGatewayResponse {
     id: string;
     paid: boolean;
-    error: null | constants.INSUFFICIENT_FUNDS | constants.SERVICE_UNAVAILABLE;
+    error: null | constants.INSUFFICIENT_FUNDS | constants.SERVICE_UNAVAILABLE | constants.INVALID_PAYMENT_CREDENTIALS;
 };
 
 const paymentHandler = async (request: express.Request, response: express.Response): Promise<void> => {
@@ -32,12 +32,7 @@ const paymentHandler = async (request: express.Request, response: express.Respon
 
     if (!isAuthorizationValid()) {
         response.status(401);
-        response.json({
-            data: null,
-            error: {
-                message: 'Valid authorization is required'
-            }
-        })
+        response.json(PaymentGatewayResponse(false, constants.INVALID_PAYMENT_CREDENTIALS));
     } else {
         const randomIntegerZeroToTwo = util.getRandomInt(3);
 
@@ -57,7 +52,7 @@ const paymentHandler = async (request: express.Request, response: express.Respon
     }
 };
 
-function PaymentGatewayResponse(paid: boolean, error?: constants.INSUFFICIENT_FUNDS | constants.SERVICE_UNAVAILABLE): PaymentGatewayResponse {
+function PaymentGatewayResponse(paid: boolean, error?: constants.INSUFFICIENT_FUNDS | constants.SERVICE_UNAVAILABLE | constants.INVALID_PAYMENT_CREDENTIALS): PaymentGatewayResponse {
     return {
         id: util.getRandomHexString(),
         paid,
