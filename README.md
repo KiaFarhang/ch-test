@@ -162,3 +162,4 @@ const mockDatabase = () => {
 - I chose to return a 400 status code when the API finds out the customer has insufficient funds to subscribe. Is that an appropriate response? What do you use in similar cases?
 - How much is too much information to expose to the client? For example, if we can't connect to a payment gateway, should we say that in our error message, or do you advocate a more generic "something went wrong" to avoid divulging too much?
 - I lack Ruby experience, and I'm curious as to your thoughts on its pros and cons vs. something like Node for a back end. Where do the headaches occur with Ruby, and where does it shine for something like this?
+- How do you securely store credit card information and other sensitive details? With a little more time, I would have like to salt credit card numbers before adding them to the database. Security/cryptography is by no means my strong suit but I'd love to learn more about it from the team.
