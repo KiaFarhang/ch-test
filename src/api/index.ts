@@ -87,7 +87,7 @@ export const subscriptionHandler = async (request: express.Request, response: ex
 
         if (attemptCount >= 3) {
 
-            //At this point we've tried three times with no luck, time to send a 503 to the client.
+            // At this point we've tried three times with no luck, time to send a 503 to the client.
 
             response.status(503);
             response.json(APIResponse(null, constants.SERVICE_UNAVAILABLE));

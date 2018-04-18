@@ -19,6 +19,8 @@ apiRouter.post('/payment', paymentHandler);
 apiRouter.post('/subscribe', subscriptionHandler);
 apiRouter.get('/subscribe', subscriptionListHandler);
 
-app.listen(8000);
+app.listen(parseInt(process.env.APP_PORT as string));
+
+console.log(`Application listening on port ${process.env.APP_PORT}`);
 
 export default app;

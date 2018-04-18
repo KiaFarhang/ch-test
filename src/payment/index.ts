@@ -38,7 +38,6 @@ const paymentHandler = async (request: express.Request, response: express.Respon
 
         if (randomIntegerZeroToTwo === 0) {
             response.status(200);
-
             response.json(PaymentGatewayResponse(true));
         } else if (randomIntegerZeroToTwo === 1) {
             response.status(200);
@@ -46,7 +45,6 @@ const paymentHandler = async (request: express.Request, response: express.Respon
             response.json(PaymentGatewayResponse(false, constants.INSUFFICIENT_FUNDS));
         } else {
             response.status(503);
-
             response.json(PaymentGatewayResponse(false, constants.SERVICE_UNAVAILABLE));
         }
     }
