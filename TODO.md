@@ -18,18 +18,13 @@
 - (Optional) validate credit card information
     - ~~If no match~~
         - ~~Return 400 bad request~~
-- Await payment gateway response
-    - If successfully paid
-        - Add customer data to the database (encrypt CC data)
+- ~~Await payment gateway response~~
+    - ~~If successfully paid~~
+        - ~~Add customer data to the database (encrypt CC data)~~
         - ~~Return 201 Created with data object noting a successful transaction~~
-    - If insufficient funds
-        - Return ?? status code with data object noting insufficient funds error
-    - If timeout/503
-        - Retry a maximum of three times. If timeouts continue, send a 503 response indicating the server could not be reached.
+    - ~~If insufficient funds~~
+        - ~~Return ?? status code with data object noting insufficient funds error~~
+    - ~~If timeout/503~~
+        - ~~Retry a maximum of three times. If timeouts continue, send a 503 response indicating the server could not be reached.~~
 
-- (Optional) Provide endpoint for listing all valid subscriptions and their next billing date
-
-
-### Database ###
-
-- Given an object matching the customer data model, insert it into a customers table, returning whether the insertion was successful
+- ~~(Optional) Provide endpoint for listing all valid subscriptions and their next billing date~~

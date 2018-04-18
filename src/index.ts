@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 import * as express from 'express';
 
 import paymentHandler from './payment';
-import subscriptionHandler from './api';
+import { subscriptionHandler, subscriptionListHandler } from './api';
 
 dotenv.config();
 
@@ -17,6 +17,7 @@ app.use('/api/v1', apiRouter);
 
 apiRouter.post('/payment', paymentHandler);
 apiRouter.post('/subscribe', subscriptionHandler);
+apiRouter.get('/subscribe', subscriptionListHandler);
 
 app.listen(8000);
 

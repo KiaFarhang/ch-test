@@ -7,7 +7,7 @@ import * as nock from 'nock';
 import * as sinon from 'sinon';
 import * as util from './util';
 
-import { APIResponse, CustomerData } from './api';
+import { APIResponse, CustomerData, SubscriptionListData } from './api';
 import { PaymentGatewayResponse } from './payment';
 import { CustomerTableRow } from './db';
 
@@ -522,6 +522,77 @@ describe('Server', () => {
                             });
                         });
                     });
+                });
+            });
+        });
+        describe('GET', () => {
+
+            let response: ChaiHttp.Response;
+            let body: { data: SubscriptionListData[] };
+
+            before(async () => {
+                // Populate the mock DB with some dummy data
+                mockDatabase.insert({
+                    firstName: 'Kia',
+                    lastName: 'Farhang',
+                    creditCardNumber: '1234567812345678',
+                    expirationMonth: '04',
+                    expirationYear: 2020
+                });
+
+                mockDatabase.insert({
+                    firstName: 'Joan',
+                    lastName: 'Jett',
+                    creditCardNumber: '1234567812345678',
+                    expirationMonth: '09',
+                    expirationYear: 2022
+                });
+
+                // Hit the endpoint
+
+                response = await chai.request(app)
+                    .get(subscriptionEndpoint);
+
+                body = response.body;
+
+            });
+
+            after(() => {
+                mockDatabase.clear();
+            });
+
+            it('Returns a 200 status code', () => {
+                assert.strictEqual(response.status, 200);
+            });
+            it('Returns an object body', () => {
+                assert.isObject(body);
+            });
+            it('The body has a "data" property, which is an array of objects', () => {
+                assert.property(body, "data");
+                assert.isArray(body.data);
+                body.data.forEach((datum) => {
+                    assert.isObject(datum);
+                });
+
+            });
+            it('Each object in the data array has a string "name" property, which is a concatenation of first + last names from DB', () => {
+                const databaseRows = mockDatabase.selectAll();
+
+                body.data.forEach((datum, index) => {
+                    assert.strictEqual(datum.name, `${databaseRows[index].firstName} ${databaseRows[index].lastName}`);
+                });
+
+            });
+            it('Each object in the data array has a string nextBillingDate property, set to 30 days from the subscription date in DB', () => {
+                const databaseRows = mockDatabase.selectAll();
+
+                body.data.forEach((datum, index) => {
+                    const expectedDate = new Date(databaseRows[index].subscriptionDate.getTime() + constants.MILLISECONDS_IN_A_MONTH);
+                    const expectedDateAsString = expectedDate.toLocaleString('en-US');
+
+                    // Needs parsing, as it comes through the server as a JSON string
+                    const nextBillingDate = new Date(datum.nextBillingDate).toLocaleString('en-US');
+                    assert.strictEqual(nextBillingDate, expectedDateAsString);
                 });
             });
         });

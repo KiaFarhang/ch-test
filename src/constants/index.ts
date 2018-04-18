@@ -12,3 +12,6 @@ export type INVALID_CUSTOMER_DATA = typeof INVALID_CUSTOMER_DATA;
 
 export const SUBSCRIPTION_SUCCESSFUL = 'Success! Thanks for subscribing.';
 export type SUBSCRIPTION_SUCCESSFUL = typeof SUBSCRIPTION_SUCCESSFUL;
+
+export const MILLISECONDS_IN_A_MONTH = 30 * 24 * 60 * 60 * 1000;
+export type MILLISECONDS_IN_A_MONTH = typeof MILLISECONDS_IN_A_MONTH;

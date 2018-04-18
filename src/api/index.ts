@@ -22,7 +22,12 @@ export interface APIResponse {
     };
 };
 
-const subscriptionHandler = async (request: express.Request, response: express.Response): Promise<void> => {
+export interface SubscriptionListData {
+    name: string;
+    nextBillingDate: string;
+}
+
+export const subscriptionHandler = async (request: express.Request, response: express.Response): Promise<void> => {
     const { body } = request;
     if (!isValidCustomerData(body)) {
         response.status(400);
@@ -95,6 +100,25 @@ const subscriptionHandler = async (request: express.Request, response: express.R
     }
 
 }
+
+export const subscriptionListHandler = async (request: express.Request, response: express.Response): Promise<void> => {
+
+    const subscriberRows = mockDatabase.selectAll();
+    let subscriptionData: SubscriptionListData[] = [];
+
+    subscriberRows.forEach((row) => {
+        subscriptionData.push({
+            name: `${row.firstName} ${row.lastName}`,
+            // We're just adding 30 days' worth of milliseconds to the subscription date
+            nextBillingDate: new Date(row.subscriptionDate.getTime() + constants.MILLISECONDS_IN_A_MONTH).toLocaleString('en-US')
+        });
+    });
+    response.status(200);
+    response.json({
+        data: subscriptionData
+    });
+}
+
 async function makePaymentGatewayRequest(customerData: CustomerData): Promise<PaymentGatewayResponse | null> {
     try {
         const paymentResponse = await requestPromise({
@@ -150,6 +174,3 @@ function isValidCustomerData(object: object): object is CustomerData {
 
     return true;
 }
-
-
-export default subscriptionHandler;
