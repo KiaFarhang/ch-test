@@ -1,5 +1,6 @@
 import * as constants from '../constants';
 import * as express from 'express';
+import mockDatabase from '../db';
 import * as requestPromise from 'request-promise-native';
 
 import { PaymentGatewayResponse } from '../payment';
@@ -52,6 +53,9 @@ const subscriptionHandler = async (request: express.Request, response: express.R
                 // Happy path
 
                 if (paymentGatewayResponse.paid) {
+
+                    mockDatabase.insert(body);
+
                     response.status(201);
                     response.json(APIResponse(constants.SUBSCRIPTION_SUCCESSFUL, null));
                     return;

@@ -2,12 +2,14 @@ import 'mocha';
 import app from './index';
 import * as chai from 'chai';
 import * as constants from './constants';
+import mockDatabase from './db';
 import * as nock from 'nock';
 import * as sinon from 'sinon';
 import * as util from './util';
 
 import { APIResponse, CustomerData } from './api';
 import { PaymentGatewayResponse } from './payment';
+import { CustomerTableRow } from './db';
 
 
 chai.use(require('chai-http'));
@@ -260,7 +262,25 @@ describe('Server', () => {
 
                             body = response.body;
                         });
-                        it('TODO - Adds the customer to the database', () => {
+
+                        after(() => {
+                            mockDatabase.clear();
+                        });
+
+                        it('Adds the customer to the database', () => {
+                            const databaseRows: CustomerTableRow[] = mockDatabase.selectAll();
+                            assert.lengthOf(databaseRows, 1);
+
+                            const customerFromDB = databaseRows[0];
+
+                            // We don't just check for deep object equality because the database entry
+                            // also has a Date subscriptionDate property that the customer data lacks.
+
+                            assert.strictEqual(customerFromDB.firstName, customerData.firstName);
+                            assert.strictEqual(customerFromDB.lastName, customerData.lastName);
+                            assert.strictEqual(customerFromDB.creditCardNumber, customerData.creditCardNumber);
+                            assert.strictEqual(customerFromDB.expirationMonth, customerData.expirationMonth);
+                            assert.strictEqual(customerFromDB.expirationYear, customerData.expirationYear);
 
                         });
                         it('Returns a 201 Created status code', () => {
@@ -365,8 +385,26 @@ describe('Server', () => {
                                 body = response.body;
                             });
 
+                            after(() => {
+                                mockDatabase.clear();
+                            });
+
                             it('Returns a 201 Created status code', () => {
                                 assert.strictEqual(response.status, 201);
+                            });
+
+                            it('Adds the customer to the database', () => {
+                                const databaseRows: CustomerTableRow[] = mockDatabase.selectAll();
+                                assert.lengthOf(databaseRows, 1);
+
+                                const customerFromDB = databaseRows[0];
+
+                                assert.strictEqual(customerFromDB.firstName, customerData.firstName);
+                                assert.strictEqual(customerFromDB.lastName, customerData.lastName);
+                                assert.strictEqual(customerFromDB.creditCardNumber, customerData.creditCardNumber);
+                                assert.strictEqual(customerFromDB.expirationMonth, customerData.expirationMonth);
+                                assert.strictEqual(customerFromDB.expirationYear, customerData.expirationYear);
+
                             });
                             it('Returns an object body', () => {
                                 assert.isObject(body);
